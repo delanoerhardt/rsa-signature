@@ -1,0 +1,7 @@
+Generating random big primes
+https://www.di-mgt.com.au/rsa_alg.html#note2
+https://en.wikipedia.org/wiki/Miller%E2%80%93Rabin_primality_test
+
+Padding scheme to use with hash
+https://tools.ietf.org/html/rfc8017#section-9.2
+
