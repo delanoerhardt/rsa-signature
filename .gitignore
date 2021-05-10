@@ -1,0 +1,4 @@
+__pycache__/
+initramfs-linux.img
+rsa-priv
+*.sign
