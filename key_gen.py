@@ -29,7 +29,7 @@ def isNumberPrime(n):
 
 def getRandomBigPrime(bits):
   possiblePrime = random.getrandbits(bits)
-  possiblePrime = (3 << (bits - 1)) | possiblePrime | 1
+  possiblePrime = (3 << (bits - 2)) | possiblePrime | 1
   while(True):
     if(isNumberPrime(possiblePrime)):
       return possiblePrime
