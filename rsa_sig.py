@@ -123,7 +123,7 @@ def main():
   fileNameToSign = "message" # example file
 
   for option in sys.argv[1:]:
-    if(option == "--keys-only"):
+    if(option == "--gen-keys"):
       generateKeysOnly = True
     elif(option == "--verify"):
       verifySignature = True
@@ -155,22 +155,3 @@ def main():
       print("Message signature doesn't match!")
 
 main()
-
-
-# keys = generateKeys(1024)
-# hashed = hashMessage(b"meudeusissovaidartaoruim")
-# padded = padHash(hashed, 1024)
-# signature = pow(int(padded, 16), keys["sk"][1], keys["sk"][0])
-# paddedHopefully = pow(signature, keys["pk"][1], keys["sk"][0])
-
-
-# writeKeys(keys)
-# print("modulo: " + np.base_repr(keys["sk"][0], 16))
-# print("private: " + np.base_repr(keys["sk"][1], 16))
-# print("public: " + np.base_repr(keys["pk"][1], 16))
-
-# print("hashed: " + hashed)
-# print("padded: " + padded)
-
-# print("sig:  " + np.base_repr(signature, 16))
-# print("whut:" + np.base_repr(paddedHopefully, 16))
