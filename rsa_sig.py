@@ -115,17 +115,42 @@ def readMessageSignature(fileNameOfSign):
 
     return (int(modulus, 16), int(signature, 16))
 
+def printHelp():
+  print("Usage")
+  print("    python " + sys.argv[0] + " [option] [X]")
+  print("Options:")
+  print("--gen-keys  Generate 'rsa-priv' file with the private key that")
+  print("            will be used to sign documents")
+  print("--sign      Signs the document with the private key present")
+  print("            in the file 'rsa-priv' for a file named X,")
+  print("            generates a file named X.sign containing the")
+  print("            signature and public modulus")
+  print("--verify    Check whether the signature for the file named")
+  print("            X present on the file named X.sign is valid")
+  print("-h --help   Pints this message")
+  print("\nIf no file name is given, the program defaults to 'message'")
+  print("and thus generates a signature file named 'message.sign'\n")
+
 
 def main():
+  if(len(sys.argv) <= 1):
+    printHelp()
+    return
+
   generateKeysOnly = False
   verifySignature = False
 
   fileNameToSign = "message" # example file
 
   for option in sys.argv[1:]:
-    if(option == "--gen-keys"):
+    if(option == "--help" or option == "-h"):
+      printHelp()
+      return
+    elif(option == "--gen-keys" or option == "-g"):
       generateKeysOnly = True
-    elif(option == "--verify"):
+    elif(option == "--sign" or option == "-s"):
+      verifySignature = False
+    elif(option == "--verify" or option == "-v"):
       verifySignature = True
     else:
       fileNameToSign = option
@@ -138,15 +163,39 @@ def main():
     return
   
   if(not verifySignature):
-    privKey = readPrivKey(privKeyFileName)
-    hashedMessage = hashFileContents(fileNameToSign)
+    privKey = 0
+    try:
+      privKey = readPrivKey(privKeyFileName)
+    except:
+      print("Run this program with the option --gen-keys to generate keys before signing!")
+      return
+      
+    hashedMessage = 0
+    try:
+      hashedMessage = hashFileContents(fileNameToSign)
+    except:
+      print("Couldn't find a file named '" + fileNameToSign + "'")
+      return 
+
     paddedMessage = padHash(hashedMessage, 1024)
     messageSignature = pow(int(paddedMessage, 16), privKey[1], privKey[0])
     writeMessageSignature(fileNameToSign + ".sign", messageSignature, privKey[0])
 
   else:
-    modAndSign = readMessageSignature(fileNameToSign + ".sign")
-    hashedMessage = int(hashFileContents(fileNameToSign), 16)
+    hashedMessage = 0
+    try:
+      hashedMessage = int(hashFileContents(fileNameToSign), 16)
+    except:
+      print("Couldn't find a file named '" + fileNameToSign + "'")
+      return
+
+    modAndSign = 0
+    try:
+      modAndSign = readMessageSignature(fileNameToSign + ".sign")
+    except:
+      print("The file named '" + fileNameToSign + ".sign' doesn't exist, run this with --sign before verifying")
+      return
+
     hashedMessageFromSignature = pow(modAndSign[1], 65537, modAndSign[0]) & 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
     
     if(hashedMessage == hashedMessageFromSignature):
