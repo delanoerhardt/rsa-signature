@@ -2,6 +2,8 @@ import random
 import numpy as np
 import hashlib
 
+import sys
+
 def isNumberPrime(n):
   r = 1
   d = (n - 1) // 2
@@ -26,7 +28,6 @@ def isNumberPrime(n):
   
   return True
 
-  
 
 def getRandomBigPrime(bits):
   possiblePrime = random.getrandbits(bits)
@@ -58,10 +59,15 @@ def generateKeys(bits):
   
   return {"sk": (N, d), "pk": (N, e)}
 
-def hashMessage(message):
-  return hashlib.sha3_256(message).hexdigest()
-  
-def padHash(hash):
+
+def hashFileContents(fileName):
+  sha3Obj = hashlib.sha3_256()
+  with open(fileName, "rb") as messageFile:
+    sha3Obj.update(messageFile.read())
+  return sha3Obj.hexdigest()
+
+
+def padHash(hash, desiredBitLength):
   # the bytes used for the digest info were copied from
   # https://tools.ietf.org/html/rfc8017#section-9.2
 
@@ -73,29 +79,98 @@ def padHash(hash):
   hashWithDigestInfo = "3031300d060960864801650304020105000420" + hash
 
 
-  # n length is 1024 bits = 128 bytes
-
   # each character in hash represents a nibble
   # thus the byte amount in hash = len(hash) / 2
 
   # -3 due to the predifined three bytes that will be set
-  amountOfFFBytes = 128 - int(len(hashWithDigestInfo) / 2) - 3
-
+  amountOfFFBytes = int(desiredBitLength / 8) - int(len(hashWithDigestInfo) / 2) - 3
 
   return "0001" + ("ff" * amountOfFFBytes) + "00" + hashWithDigestInfo
 
-keys = generateKeys(1024)
-print("modulo: " + np.base_repr(keys["sk"][0], 16))
-print("private: " + np.base_repr(keys["sk"][1], 16))
-print("public: " + np.base_repr(keys["pk"][1], 16))
 
-hashed = hashMessage(b"meudeusissovaidartaoruim")
-padded = padHash(hashed)
-print("hashed: " + hashed)
-print("padded: " + padded)
+def writeKeys(keys, fileName="rsa-priv"):
+  with open(fileName, "w") as keyFile:
+    keyFile.write("rsa-priv-mod:" + np.base_repr(keys["sk"][0], 16) + "\n")
+    keyFile.write("rsa-priv-key:" + np.base_repr(keys["sk"][1], 16) + "\n")
 
-signature = pow(int(padded, 16), keys["sk"][1], keys["sk"][0])
-print("sig:  " + np.base_repr(signature, 16))
 
-paddedHopefully = pow(signature, keys["pk"][1], keys["sk"][0])
-print("whut:" + np.base_repr(paddedHopefully, 16))
+def readPrivKey(fileName):
+  with open(fileName, "r") as keyFile:
+    modulus = keyFile.readline().split("rsa-priv-mod:")[1]
+    privExponent = keyFile.readline().split("rsa-priv-key:")[1]
+
+    return (int(modulus, 16), int(privExponent, 16))
+
+
+def writeMessageSignature(fileNameToSign, messageSignature, modulus):
+  with open(fileNameToSign, "w") as messageSign:
+    messageSign.write("key-mod:" + np.base_repr(modulus, 16) + "\n")
+    messageSign.write("msg-sign:" + np.base_repr(messageSignature, 16) + "\n")
+
+
+def readMessageSignature(fileNameOfSign):
+  with open(fileNameOfSign, "r") as messageSign:
+    modulus = messageSign.readline().split("key-mod:")[1]
+    signature = messageSign.readline().split("msg-sign:")[1]
+
+    return (int(modulus, 16), int(signature, 16))
+
+
+def main():
+  generateKeysOnly = False
+  verifySignature = False
+
+  fileNameToSign = "message" # example file
+
+  for option in sys.argv[1:]:
+    if(option == "--keys-only"):
+      generateKeysOnly = True
+    elif(option == "--verify"):
+      verifySignature = True
+    else:
+      fileNameToSign = option
+
+  privKeyFileName = "rsa-priv"
+
+  if(generateKeysOnly):
+    keys = generateKeys(1024)
+    writeKeys(keys)
+    return
+  
+  if(not verifySignature):
+    privKey = readPrivKey(privKeyFileName)
+    hashedMessage = hashFileContents(fileNameToSign)
+    paddedMessage = padHash(hashedMessage, 1024)
+    messageSignature = pow(int(paddedMessage, 16), privKey[1], privKey[0])
+    writeMessageSignature(fileNameToSign + ".sign", messageSignature, privKey[0])
+
+  else:
+    modAndSign = readMessageSignature(fileNameToSign + ".sign")
+    hashedMessage = int(hashFileContents(fileNameToSign), 16)
+    hashedMessageFromSignature = pow(modAndSign[1], 65537, modAndSign[0]) & 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+    
+    if(hashedMessage == hashedMessageFromSignature):
+      print("Signature is valid for the message")
+    else:
+      print("Message signature doesn't match!")
+
+main()
+
+
+# keys = generateKeys(1024)
+# hashed = hashMessage(b"meudeusissovaidartaoruim")
+# padded = padHash(hashed, 1024)
+# signature = pow(int(padded, 16), keys["sk"][1], keys["sk"][0])
+# paddedHopefully = pow(signature, keys["pk"][1], keys["sk"][0])
+
+
+# writeKeys(keys)
+# print("modulo: " + np.base_repr(keys["sk"][0], 16))
+# print("private: " + np.base_repr(keys["sk"][1], 16))
+# print("public: " + np.base_repr(keys["pk"][1], 16))
+
+# print("hashed: " + hashed)
+# print("padded: " + padded)
+
+# print("sig:  " + np.base_repr(signature, 16))
+# print("whut:" + np.base_repr(paddedHopefully, 16))
