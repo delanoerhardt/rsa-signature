@@ -51,6 +51,10 @@ def generateKeys(bits):
     if(q % e != 1):
       break
 
+  # This is VERY unlikely to ever happen, but this check brings me peace
+  if(p == q):
+    return generateKeys(bits)
+
   N = p*q
   L = (p - 1)*(q - 1)
   d = pow(e, -1, L)
