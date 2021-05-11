@@ -1,5 +1,6 @@
 import sign
 import key_gen
+import numpy as np
 
 import sys
 
@@ -27,6 +28,7 @@ def main():
 
   generateKeysOnly = False
   verifySignature = False
+  useOAEP = True
 
   fileNameToSign = "message" # example file
 
@@ -40,6 +42,8 @@ def main():
       verifySignature = False
     elif(option == "--verify" or option == "-v"):
       verifySignature = True
+    elif(option == "--use-padding" or option == "-p"):
+      useOAEP = False
     else:
       fileNameToSign = option
 
@@ -55,21 +59,32 @@ def main():
     
     hashedMessage = sign.hashFileContents(fileNameToSign)
     
-    paddedMessage = sign.padHash(hashedMessage, 1024)
+    if(useOAEP):
+      paddedMessage = sign.OAEP(hashedMessage)
+    else:
+      paddedMessage = sign.padHash(hashedMessage, 1024)
 
     messageSignature = pow(int(paddedMessage, 16), privKey[1], privKey[0])
     
-    sign.writeMessageSignature(fileNameToSign + ".sign", messageSignature, privKey[0])
+    sign.writeMessageSignature(fileNameToSign + ".sign", messageSignature, privKey[0], useOAEP)
 
     print("File '" + fileNameToSign + "' was signed successfully")
   else:
     hashedMessage = int(sign.hashFileContents(fileNameToSign), 16)
 
-    modAndSign = sign.readMessageSignature(fileNameToSign + ".sign")
+    (signUseOAEP, modAndSign) = sign.readMessageSignature(fileNameToSign + ".sign")
 
-    hashedMessageFromSignature = pow(modAndSign[1], 65537, modAndSign[0]) & 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+    valid = False
+
+    if(signUseOAEP):
+      EM = pow(modAndSign[1], 65537, modAndSign[0])
+      hashFromSign = sign.invertOAEP(EM)
+      valid = hashedMessage == int(hashFromSign, 16)
+    else:
+      hashedMessageFromSignature = pow(modAndSign[1], 65537, modAndSign[0]) & 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+      valid = hashedMessage == hashedMessageFromSignature
     
-    if(hashedMessage == hashedMessageFromSignature):
+    if(valid):
       print("Signature is valid for the message")
     else:
       print("Message signature doesn't match!")
