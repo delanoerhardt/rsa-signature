@@ -26,7 +26,13 @@ Para verificar a primalidade dos candidatos a p e q foi implementado o teste de 
 
 ## Como é assinado o arquivo
 
-O arquivo é assinado seguindo o algoritmo proposto [na RFC onde RSASSA é descrito](https://datatracker.ietf.org/doc/html/rfc8017#section-8.2.1) de forma mais próxima
+### OAEP
+
+O arquivo é assinado usando OAEP sobre a hash sha3_256 do arquivo binário.
+
+### Padding de acordo com RFC
+
+Alternativamente, o arquivo é assinado seguindo o algoritmo proposto [na RFC onde RSASSA é descrito](https://datatracker.ietf.org/doc/html/rfc8017#section-8.2.1) de forma mais próxima
 possível.
 
 Primeiro é usado um algoritmo de hash - sha3 de 256 bits nesse caso - para criar um hash da mensagem a ser assinada.
@@ -46,7 +52,13 @@ especificação de como produzir esse digest corretamente a tempo.
 
 A verificação é feita usando a assinatura gerado, o módulo N e o arquivo que contem a mensagem assinada.
 
-A assinatura S é lida, bem como o módulo N, e é verificado se os primeiros 256 bits menos significativos de S ^ e % N correspondem ao valor obtido ao aplicar o hash à mensagem. Caso haja correspondência isso indica que a assinatura é válida.
+A assinatura S é lida, bem como o módulo N e é obtido EM = S ^ 65537 % N.
+
+O algoritmo usado como padding durante a assinatura é invertido:
+
+Caso OAEP tenha sido usada EM passa pela função invertOAEP para gerar o hash da mensagem pela assinatura que é comparado com o hash obtido diretamente da mensagem, caso ambos os hashs sejam iguais a assinatura é valida;
+
+Caso padding tenha sido usado, são verificados os primeiros 256 bits menos significativos de EM correspondem ao valor obtido ao aplicar o hash à mensagem. Caso haja correspondência isso indica que a assinatura é válida.
 
 ## Formato usado
 
@@ -54,4 +66,4 @@ Para o armazenamento da chave privada foi escrito o valor do módulo e do expoen
 
 No início de cada linha é escrito "rsa-priv-mod:" e "rsa-priv-key:" logo antes dos respectivos valores do módulo N e do expoente privado d para identificar ambos.
 
-Para o armazenamento de cada assinatura segue-se um esquema semelhante, cria-se um arquivo com mesmo nom do arquivo que contem a mensagem a ser assinada mais o sufixo '.sign' e então o módulo N é escrito precedido por "key-mod:" em uma linha enquanto a assinatura S é escrita precedidada por "msg-sign:" na segunda linha.
+Para o armazenamento de cada assinatura segue-se um esquema semelhante, cria-se um arquivo com mesmo nome do arquivo que contem a mensagem a ser assinada mais o sufixo '.sign' e então é escrito em uma linha "use-oaep:" seguido por um valor igual à 1 caso OAEP tenha sido usado e 0 caso padding tenha sido usaodo; em seguida o módulo N é escrito precedido por "key-mod:" na segunda linha; e a assinatura S é escrita precedidada por "msg-sign:" na terceira linha.
