@@ -16,6 +16,8 @@ def printHelp():
   print("            signature and public modulus")
   print("--verify    Check whether the signature for the file named")
   print("            X present on the file named X.sign is valid")
+  print("--no-oaep   Uses a padding algorithm more like the one")
+  print("            described on the original RFC")
   print("-h --help   Pints this message")
   print("\nIf no file name is given, the program defaults to 'message'")
   print("and thus generates a signature file named 'message.sign'\n")
@@ -42,7 +44,7 @@ def main():
       verifySignature = False
     elif(option == "--verify" or option == "-v"):
       verifySignature = True
-    elif(option == "--use-padding" or option == "-p"):
+    elif(option == "--no-oaep" or option == "-n"):
       useOAEP = False
     else:
       fileNameToSign = option
